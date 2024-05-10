@@ -8,3 +8,6 @@
 
 - name: 'Run playbook-emissary.yml'
   ansible.builtin.import_playbook: playbook-emissary.yml
+
+- name: 'Run playbook-nginx.yml'
+  ansible.builtin.import_playbook: playbook-nginx.yml
