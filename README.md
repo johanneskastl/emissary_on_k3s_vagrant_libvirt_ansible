@@ -17,6 +17,10 @@ Please be aware, that this might break the Ansible provisioning.
 1. Run `vagrant up`
 1. Run `kubectl --kubeconfig ansible/k3s-kubeconfig get nodes` and you should
    see your server.
+1. Open the URL that was printed out at the end of the Ansible provisioning, and
+   you should see the Nginx page.
+   The URL should look something like this:
+   `http://nginx.192.0.2.13.sslip.io`
 1. Party!
 
 ## Cleaning up
