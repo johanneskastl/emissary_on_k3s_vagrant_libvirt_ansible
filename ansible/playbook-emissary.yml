@@ -30,6 +30,22 @@
         namespace: 'emissary'
         src: 'https://app.getambassador.io/yaml/emissary/3.9.1/emissary-crds.yaml'
 
+    - name: 'Wait until all pods in the emissary-system namespace are running'
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: emissary-system
+      register: pod_list
+      until:
+        '
+        pod_list | json_query("resources[*].status.phase") | unique == ["Running"]
+        or
+        pod_list | json_query("resources[*].status.phase") | sort | unique == ["Running", "Succeeded"]
+        '
+      retries: 12
+      delay: 10
+      delegate_to: 'localhost'
+
     - name: 'Install Emissary via helm chart'
       # running this from vagrant fails, if we target localhost directly
       delegate_to: 'localhost'
@@ -41,7 +57,7 @@
         release_values:
           replicaCount: 1
 
-    - name: 'Wait until all pods are running'
+    - name: 'Wait until all pods in the emissary namespace are running'
       kubernetes.core.k8s_info:
         api_version: v1
         kind: Pod
@@ -56,4 +72,3 @@
       retries: 12
       delay: 10
       delegate_to: 'localhost'
-
