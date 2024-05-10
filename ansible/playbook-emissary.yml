@@ -1,0 +1,59 @@
+---
+
+- name: 'Install Emissary'
+  hosts: 'k3s1'
+  gather_facts: false
+  become: false
+  module_defaults:
+    kubernetes.core.helm:
+      kubeconfig: './k3s-kubeconfig'
+    kubernetes.core.k8s:
+      kubeconfig: './k3s-kubeconfig'
+    kubernetes.core.k8s_info:
+      kubeconfig: './k3s-kubeconfig'
+
+  tasks:
+
+    - name: 'Create the emissary namespace'
+      delegate_to: 'localhost'
+      kubernetes.core.k8s:
+        name: 'emissary'
+        api_version: 'v1'
+        kind: 'Namespace'
+        state: 'present'
+
+    - name: 'Install Emissary CRDs'
+      # running this from vagrant fails, if we target localhost directly
+      delegate_to: 'localhost'
+      kubernetes.core.k8s:
+        state: 'present'
+        namespace: 'emissary'
+        src: 'https://app.getambassador.io/yaml/emissary/3.9.1/emissary-crds.yaml'
+
+    - name: 'Install Emissary via helm chart'
+      # running this from vagrant fails, if we target localhost directly
+      delegate_to: 'localhost'
+      kubernetes.core.helm:
+        chart_repo_url: 'https://app.getambassador.io'
+        release_name: 'emissary-ingress'
+        chart_ref: 'emissary-ingress'
+        release_namespace: 'emissary'
+        release_values:
+          replicaCount: 1
+
+    - name: 'Wait until all pods are running'
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: emissary
+      register: pod_list
+      until:
+        '
+        pod_list | json_query("resources[*].status.phase") | unique == ["Running"]
+        or
+        pod_list | json_query("resources[*].status.phase") | sort | unique == ["Running", "Succeeded"]
+        '
+      retries: 12
+      delay: 10
+      delegate_to: 'localhost'
+
